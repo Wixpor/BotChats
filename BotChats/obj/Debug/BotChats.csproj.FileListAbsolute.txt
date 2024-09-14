@@ -1,0 +1,10 @@
+C:\Users\jhona\source\repos\BotChats\BotChats\bin\Debug\BotChats.exe.config
+C:\Users\jhona\source\repos\BotChats\BotChats\bin\Debug\BotChats.exe
+C:\Users\jhona\source\repos\BotChats\BotChats\bin\Debug\BotChats.pdb
+C:\Users\jhona\source\repos\BotChats\BotChats\bin\Debug\Newtonsoft.Json.dll
+C:\Users\jhona\source\repos\BotChats\BotChats\bin\Debug\Newtonsoft.Json.xml
+C:\Users\jhona\source\repos\BotChats\BotChats\obj\Debug\BotChats.csproj.AssemblyReference.cache
+C:\Users\jhona\source\repos\BotChats\BotChats\obj\Debug\BotChats.csproj.CoreCompileInputs.cache
+C:\Users\jhona\source\repos\BotChats\BotChats\obj\Debug\BotChats.csproj.Up2Date
+C:\Users\jhona\source\repos\BotChats\BotChats\obj\Debug\BotChats.exe
+C:\Users\jhona\source\repos\BotChats\BotChats\obj\Debug\BotChats.pdb
