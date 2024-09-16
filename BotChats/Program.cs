@@ -36,14 +36,13 @@ namespace BotChats
             {
                 var nameUser = await apiService.GetUserNameAsync(user.UserId);
                 Console.WriteLine($"UserId: {nameUser}, Count: {user.Count}");
-                
+
             }
 
             Console.WriteLine("Todas las conversaciones han sido obtenidas.");
-            Console.ReadLine(); 
+            Console.ReadLine();
         }
 
-        
     }
     public class MyApiService
     {
@@ -53,35 +52,36 @@ namespace BotChats
         private static readonly string apiUrlFindMesseges = "https://services.leadconnectorhq.com/conversations/{0}/messages";
         private static readonly string baseUrl = "https://services.leadconnectorhq.com";
 
+
         public async Task<List<Conversation>> GetAllConversationsAsync()
+        {
+            DateTime today = DateTime.Now.Date;
+            DateTime fourAmToday = today.AddHours(4);
+            long timestamp = new DateTimeOffset(fourAmToday).ToUnixTimeMilliseconds();
+
+            List<Conversation> allConversations = new List<Conversation>();
+            int limit = 100;
+            long? lastMessageDate = null;
+            int errorCount = 0;
+            int maxErrorCount = 10;
+
+            using (HttpClient client = new HttpClient())
             {
-                DateTime today = DateTime.Now.Date;
-                DateTime fourAmToday = today.AddHours(4);
-                long timestamp = new DateTimeOffset(fourAmToday).ToUnixTimeMilliseconds();
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {bearerToken}");
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Version", "2021-04-15");
 
-                List<Conversation> allConversations = new List<Conversation>();
-                int limit = 100;
-                long? lastMessageDate = null;
-
-                using (HttpClient client = new HttpClient())
+                bool hasMorePages = true;
+                while (hasMorePages)
                 {
-                    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {bearerToken}");
-                    client.DefaultRequestHeaders.Add("Accept", "application/json");
-                    client.DefaultRequestHeaders.Add("Version", "2021-04-15");
-
-                    bool hasMorePages = true;
-                    while (hasMorePages)
+                    try
                     {
                         string requestUrl = $"{apiUrlFindConversations}" +
                             $"?locationId={locationId}" +
                             $"&limit={limit}" +
-                            //$"&lastMessageAction=manual" +
-                            //$"&lastMessageDirection=outbound" +
-                            //$"&lastMessageType=TYPE_SMS" +
                             $"&sort=desc" +
                             $"&sortBy=last_message_date" +
                             $"&status=all";
-
 
                         if (lastMessageDate.HasValue)
                         {
@@ -97,8 +97,7 @@ namespace BotChats
                             JArray conversations = (JArray)jsonResponse["conversations"];
                             foreach (var conv in conversations)
                             {
-
-                                if(timestamp<= (long)conv["lastMessageDate"])
+                                if (timestamp <= (long)conv["lastMessageDate"])
                                 {
                                     Conversation conversation = new Conversation
                                     {
@@ -114,7 +113,6 @@ namespace BotChats
                                 {
                                     hasMorePages = false;
                                 }
-
                             }
 
                             if (conversations.Count > 0)
@@ -131,34 +129,64 @@ namespace BotChats
                             {
                                 hasMorePages = false;
                             }
+
+                            errorCount = 0;
                         }
                         else
                         {
                             Console.WriteLine($"Error en la solicitud: {response.StatusCode}");
+                            errorCount++;
+
+                            if (errorCount >= maxErrorCount)
+                            {
+                                Console.WriteLine("Número máximo de intentos fallidos alcanzado. Finalizando.");
+                                hasMorePages = false;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Excepción: {ex.Message}");
+                        errorCount++;
+
+                        if (errorCount >= maxErrorCount)
+                        {
+                            Console.WriteLine("Número máximo de intentos fallidos alcanzado debido a una excepción. Finalizando.");
                             hasMorePages = false;
                         }
                     }
+
+                    if (errorCount > 0 && hasMorePages)
+                    {
+                        await Task.Delay(1000); 
+                    }
                 }
-
-                return allConversations;
             }
-        public async Task<List<(string userId, string messageId,string sDate)>> GetAllMessagesAsync(string conversationId)
+
+            return allConversations;
+        }
+
+        public async Task<List<(string userId, string messageId, string sDate)>> GetAllMessagesAsync(string conversationId)
+        {
+            DateTime today = DateTime.Now.Date;
+            DateTime fourAmToday = today.AddHours(4);
+
+            var allMessages = new List<(string userId, string messageId, string sDate)>();
+            int limit = 100;
+            string lastMessageId = null;
+            int errorCount = 0;
+            int maxErrorCount = 10;
+
+            using (HttpClient client = new HttpClient())
             {
-                DateTime today = DateTime.Now.Date;
-                DateTime fourAmToday = today.AddHours(4);
+                client.DefaultRequestHeaders.Add("Authorization", $"Bearer {bearerToken}");
+                client.DefaultRequestHeaders.Add("Accept", "application/json");
+                client.DefaultRequestHeaders.Add("Version", "2021-04-15");
 
-                var allMessages = new List<(string userId, string messageId, string sDate)>();
-                int limit = 100;
-                string lastMessageId = null;
-
-                using (HttpClient client = new HttpClient())
+                bool hasMorePages = true;
+                while (hasMorePages)
                 {
-                    client.DefaultRequestHeaders.Add("Authorization", $"Bearer {bearerToken}");
-                    client.DefaultRequestHeaders.Add("Accept", "application/json");
-                    client.DefaultRequestHeaders.Add("Version", "2021-04-15");
-
-                    bool hasMorePages = true;
-                    while (hasMorePages)
+                    try
                     {
                         string requestUrl = string.Format(apiUrlFindMesseges, conversationId);
                         requestUrl +=
@@ -166,7 +194,7 @@ namespace BotChats
                             $"&type=TYPE_SMS,TYPE_WHATSAPP" +
                             $"&sort=desc";
 
-                        if (lastMessageId!=null && lastMessageId != "")
+                        if (!string.IsNullOrEmpty(lastMessageId))
                         {
                             requestUrl += $"&startAfterDate={lastMessageId}";
                         }
@@ -180,26 +208,35 @@ namespace BotChats
                             JArray messages = (JArray)jsonResponse["messages"]["messages"];
                             JObject messagesObject = (JObject)jsonResponse["messages"];
 
-
                             if (messagesObject["nextPage"]?.ToString().ToLower() == "false")
                             {
                                 hasMorePages = false;
                             }
-                        foreach (var message in messages)
+
+                            foreach (var message in messages)
                             {
                                 var sSource = (string)message["source"];
                                 var sFecha = ((string)message["dateAdded"]).Replace("Z", "").Replace("T", " ");
+                                DateTime messageDate = DateTime.MinValue;
 
-                                DateTime messageDate = DateTime.ParseExact(sFecha, "MM/dd/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                try
+                                {
+                                    messageDate = DateTime.ParseExact(string.IsNullOrEmpty(sFecha) ? "01/01/2024 00:00:00" : sFecha, "MM/dd/yyyy HH:mm:ss", CultureInfo.InvariantCulture);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Console.WriteLine(ex.ToString());
+                                }
+
+                                //messageDate = DateTime.ParseExact(sFecha == "" ? "2024-01-01 00:0:00" : sFecha, "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
                                 string userId = (string)message["userId"];
 
-                                if (fourAmToday <= messageDate )
+                                if (fourAmToday <= messageDate)
                                 {
-                                    if (userId != null && userId != "" && sSource != "workflow")
+                                    if (!string.IsNullOrEmpty(userId) && sSource != "workflow")
                                     {
                                         string messageId = (string)message["id"];
                                         allMessages.Add((userId, messageId, sFecha));
-
                                     }
                                 }
                                 else
@@ -215,23 +252,50 @@ namespace BotChats
                             }
                             else
                             {
-                                hasMorePages = false; 
+                                hasMorePages = false;
                             }
+
+                            errorCount = 0;
                         }
                         else
                         {
                             Console.WriteLine($"Error en la solicitud: {response.StatusCode}");
+                            errorCount++;
+
+                            if (errorCount >= maxErrorCount)
+                            {
+                                Console.WriteLine("Número máximo de intentos fallidos alcanzado. Finalizando.");
+                                hasMorePages = false;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Excepción: {ex.Message}");
+                        errorCount++;
+
+                        if (errorCount >= maxErrorCount)
+                        {
+                            Console.WriteLine("Número máximo de intentos fallidos alcanzado debido a una excepción. Finalizando.");
                             hasMorePages = false;
                         }
                     }
-                }
 
-                return allMessages;
+                    if (errorCount > 0 && hasMorePages)
+                    {
+                        await Task.Delay(2000);
+                    }
+                }
             }
+
+            return allMessages;
+        }
 
         public async Task<string> GetUserNameAsync(string userId)
         {
             string apiUrl = $"{baseUrl}/users/{userId}";
+            int errorCount = 0;
+            int maxErrorCount = 10;
 
             using (HttpClient client = new HttpClient())
             {
@@ -239,32 +303,53 @@ namespace BotChats
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("Version", "2021-04-15");
 
-                try
+                while (errorCount < maxErrorCount)
                 {
-                    HttpResponseMessage response = await client.GetAsync(apiUrl);
-
-                    if (response.IsSuccessStatusCode)
+                    try
                     {
-                        string responseBody = await response.Content.ReadAsStringAsync();
+                        HttpResponseMessage response = await client.GetAsync(apiUrl);
 
-                        JObject jsonResponse = JObject.Parse(responseBody);
-                        string userName = jsonResponse["name"]?.ToString();
+                        if (response.IsSuccessStatusCode)
+                        {
+                            string responseBody = await response.Content.ReadAsStringAsync();
+                            JObject jsonResponse = JObject.Parse(responseBody);
+                            string userName = jsonResponse["name"]?.ToString();
 
-                        return userName;
+                            errorCount = 0;
+
+                            return userName;
+                        }
+                        else
+                        {
+                            Console.WriteLine($"Error: {response.StatusCode}");
+                            errorCount++;
+
+                            if (errorCount >= maxErrorCount)
+                            {
+                                Console.WriteLine("Número máximo de intentos fallidos alcanzado. Finalizando.");
+                                return null;
+                            }
+                        }
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        Console.WriteLine($"Error: {response.StatusCode}");
-                        return null;
+                        Console.WriteLine($"Excepción: {ex.Message}");
+                        errorCount++;
+
+                        if (errorCount >= maxErrorCount)
+                        {
+                            Console.WriteLine("Número máximo de intentos fallidos alcanzado debido a una excepción. Finalizando.");
+                            return null;
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Excepción: {ex.Message}");
-                    return null;
+
+                    await Task.Delay(1000); 
                 }
             }
+
+            return null;
         }
+
     }
 
     public class Conversation
