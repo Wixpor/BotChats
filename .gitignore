@@ -1,0 +1,86 @@
+# Visual Studio
+.vscode/
+.vs/
+*.user
+*.suo
+*.cache
+*.ide
+*.sln.docstates
+*.sln.metaproj
+*.sln.metaproj.tmp
+*.sln.lastbuildstate
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of the presence of 'restore' command
+**/packages/*
+!**/packages/build/
+!**/packages/repositories.config
+
+# Project files
+*.csproj.user
+*.csproj.DotSettings
+*.props
+*.targets
+*.rsuser
+*.ruleset
+*.sln.docstates
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Recycle Bin used on file shares
+$RECYCLE.BIN/
+
+# Hidden folders and files
+*.DS_Store
+._*
+
+# Web publish folder
+**/[Pp]ublish/
+**/PublishProfiles/
+
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# User-specific folders
+.vscode/
+.vs/
+_ReSharper*
+*.resharperuser
+
+# Windows image file caches
+Thumbs.db
+ehthumbs.db
+
+# Folder config file
+Desktop.ini
+
+# Image Thumbnails
+.DS_Store
+
+# Others
+[Bb]in/
+[Oo]bj/
+[Ll]og/
