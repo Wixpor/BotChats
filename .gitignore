@@ -1,6 +1,6 @@
 # Visual Studio
 .vscode/
-.vs/
+.vs/*
 *.user
 *.suo
 *.cache
